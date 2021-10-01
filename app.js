@@ -36,8 +36,10 @@ mongoose.connect('mongodb://localhost:27017/userDB');
 const userSchema = new mongoose.Schema({
   email: String,
   password: String,
-  //Get google ID 
-  googleId:String
+  //Get google ID
+  googleId: String,
+  //Save secrets
+  secret: String
 });
 
 //Hash and salt Passwords
@@ -94,13 +96,43 @@ app.get("/login", (req, res) => {
   res.render("login");
 });
 app.get("/secrets", (req,res)=>{
+  //Search all the users that the secrets are not null
+  User.find({"secret":{$ne:null}},function(err,foundUsers){
+    if(err){
+      console.log(err);
+    }else{
+      if (foundUsers){
+        res.render("secrets",{usersWithSecrets:foundUsers});
+      }
+    }
+  });
+});
+
+app.get("/submit", (req,res)=>{
   //If the user is authenticated, then it will render the dashboard
   //Else it will redirect to login
   if (req.isAuthenticated()){
-    res.render("secrets");
+    res.render("submit");
   }else{
     res.redirect("/login");
   }
+});
+
+app.post("/submit", (req,res)=>{
+  const postSecret= req.body.secret;
+
+  User.findById(req.user.id , function (err,foundUser){
+    if(err){
+      console.log(err);
+    } else {
+      if(foundUser){
+        foundUser.secret = postSecret;
+        foundUser.save(function(){
+          res.redirect("/secrets");
+        });
+      }
+    }
+  });
 });
 
 app.get("/logout" , (req,res)=>{
